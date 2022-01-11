@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.python.keras.models import Sequential
-from tensorflow.keras.layers import Conv1D, Conv2D, LeakyReLU, Dense, Reshape, Embedding, BatchNormalization
+from tensorflow.keras.layers import Conv1D, Conv2D, LeakyReLU, GlobalMaxPool1D, Dense, Reshape, Embedding, BatchNormalization
 
 class Generator(keras.Model):
     def __init__(self, num_points, latent_dim):
@@ -9,47 +9,84 @@ class Generator(keras.Model):
         self.feature_emb_sz = 128
         self.style_emb1_sz = 64
         self.style_emb2_sz = 128
+        self.leaky_grad = 0.01
+        self.num_points = num_points
+        self.latent_dim = latent_dim
 
         # [B, N, (3+latent_dim)] -> [B,N, feature_emb_sz]
         self.feature_emb = Sequential([
             Conv1D(self.feature_emb_sz, kernel_size=1, input_shape=(num_points, 3+latent_dim)),
-            LeakyReLU(0.01),
+            LeakyReLU(self.leaky_grad),
             Conv1D(self.feature_emb_sz, kernel_size=1),
-            LeakyReLU(0.01),
+            LeakyReLU(self.leaky_grad),
         ])
 
-        # [B,N, feature_emb_sz] ->  [B,N, 2*]
-        self.style_emb1 = Sequential([
-            Conv1D(self.feature_emb_sz, kernel_size=1, input_shape=(num_points, 3+latent_dim)),
-            LeakyReLU(0.01),
-            Conv1D(self.feature_emb_sz, kernel_size=1),
-            LeakyReLU(0.01),
+        # [B,N, feature_emb_sz] ->  [B,N, 2*style_emb1/2_sz]
+        self.style_emb1 = Conv1D(2*self.style_emb1_sz, kernel_size=1, input_shape=(num_points, self.feature_emb1_sz))
+        self.style_emb2 = Conv1D(2*self.style_emb1_sz, kernel_size=1, input_shape=(num_points, self.feature_emb2_sz))
+
+        # [B, N, dim_in] -> [B, N, dim_out]
+        self.graph_attn1 = GraphAttention(dim_in=3, dim_out=self.style_emb1_sz, k=20, n=num_points)
+        self.graph_attn2 = GraphAttention(self.style_emb1_sz, self.style_emb2_sz, 20, num_points)
+
+        self.adaptive_instance_norm1 = AdaptiveInstanceNorm()
+        self.adaptive_instance_norm2 = AdaptiveInstanceNorm()
+
+        # [B, N, 128] -> [B,1,128]
+        self.max_pool = GlobalMaxPool1D()
+
+        # [B, 128] -> [B, 512]
+        self.global_feature_MLP = Sequential([
+            Dense(self.feature_emb),
+            BatchNormalization(),
+            LeakyReLU(self.leaky_grad),
+            Dense(512),
+            BatchNormalization(),
+            LeakyReLU(self.leaky_grad),
         ])
 
-        self.graph_attn1 = Graph_Attention(3, 64, 20, 1024)
-        self.graph_attn2 = Graph_Attention(64, 128, 20, 1024)
-
-        self.adaptive_instance_norm = _
-
+        # [B, N, (512 + self.style_emb2_sz)] -> [B, N, 3]
+        self.MLP_out = Sequential([
+            Conv1D(256, kernel_size=1, input_shape=(num_points, 3+self.style_emb1_sz)),
+            LeakyReLU(self.leaky_grad),
+            Conv1D(64, kernel_size=1),
+            LeakyReLU(self.leaky_grad),
+            Conv1D(3, kernel_size=1, activation='tanh'),
+        ])
     def call(self, sphere, latent_vec):
         """
-        sphere: [N, 3]
-        latent_vec: [latent_dim,]
+        sphere: [B, N, 3]
+        latent_vec: [B, latent_dim]
 
-        Returns: generated point cloud [N,3]
+        Returns: generated point cloud [B, N,3]
         """
-        # 1) get local style embedding from prior latent matrix
-
+        # 1) upper branch: get local style embedding from prior latent matrix
+        latent_vecs = tf.expand_dims(latent_vec, 1) # [B, 1, latent_dim]
+        latent_vecs = tf.repeat(latent_vecs, self.num_points, axis=1) # [B,N, latent_dim]
+        latent_matrix = tf.concat([sphere, latent_vecs], axis=-1) # [B,N, 3+latent_dim]
+        feature_emb = self.feature_emb(latent_matrix) # [B,N, feature_emb_sz]
+        local_style1 = self.style_emb1(feature_emb) # [B,N, 2*style_emb1_sz]
         # 2) lower branch: apply graph attention module to get feature map
-
+        feature_map = self.graph_attn1(sphere) # [B, N, 64]
         # 3) get embedded feature map: fuse local style with global feature map
-
+        normalized_feature_map = self.adaptive_instance_norm1(feature_map, local_style1) # [B, N, 64]
+        
         # repeat 1-3
-
+        local_style2 = self.style_emb2(feature_emb) # [B,N, 2*style_emb2_sz]
+        feature_map2 = self.graph_attn2(normalized_feature_map) # [B, N, 128]
+        normalized_feature_map2 = self.adaptive_instance_norm2(feature_map2, local_style2) # [B, N, 128]
+        
         # reconstruct point cloud from new embedded feature map
+        pooled_features = self.max_pool(normalized_feature_map2) # [B, 1, 128]
 
-# helper class
-class Graph_Attention(keras.Model):
+        global_features = self.global_feature_MLP(tf.squeeze(pooled_features)) # [B, 512]
+        global_features = tf.expand_dims(global_features, 1) # [B, 1, 512]
+        duplicated_features = tf.repeat(global_features, self.num_points, axis=1) # [B, N, 512]
+        concat = tf.concat([normalized_feature_map2, duplicated_features], axis=-1) # [B, N, (512+128)]
+        return self.MLP_out(concat) # [B, N,3]
+
+# helper classes
+class GraphAttention(keras.Model):
     def __init__(self, dim_in, dim_out, k, n):
         super().__init__()
 
@@ -79,8 +116,8 @@ class Graph_Attention(keras.Model):
 
     def call(self, x):
         """
-        x: point cloud input [batch, N, C] where C is the dimension of the points in the cloud (C=3)
-        returns: point-wise feature map [B, N, 2*dim_out]
+        x: (point cloud) input [batch, N, C] where C is the dimension of the points in the cloud (C=3 initially)
+        returns: point-wise feature map [B, N, dim_out]
         """
         
         # duplicate K times (upper branch)
@@ -172,3 +209,20 @@ class Graph_Attention(keras.Model):
         neg_adj = -adj_matrix
         _, nn_idx = tf.nn.top_k(neg_adj, k=k)
         return nn_idx
+
+class AdaptiveInstanceNorm(keras.Model):
+    def __init__(self):
+        super().__init__()
+        # normalize per feature vector, not across entire batch
+        self.norm = BatchNormalization(axis=[0,1])
+
+
+    def call(self, feature_map, styles, training=True):
+        """
+        feature_map: output of graph attention, [B, N, dim_graph_attn_out]
+        styles: output of style embedding, [B,N, 2*style_emb_sz]
+        returns: normalized feature map (same size)
+        """
+        # split styles into scale and bias scalars
+        scale, bias = tf.split(styles, 2) # [B, N, style_emb_sz]
+        return scale * self.norm(feature_map) + bias
