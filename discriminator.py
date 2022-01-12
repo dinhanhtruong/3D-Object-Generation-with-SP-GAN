@@ -9,8 +9,8 @@ class Discriminator(keras.Model):
         self.num_points = num_points
         self.leaky_grad = 0.01
         self.per_point_loss_weight = per_point_loss_weight
-        # normalize per feature vector/instance, not across entire batch
 
+        # [batch_sz, num_points, 3] -> [B,N,C]
         self.feature_extraction = Sequential([
             Conv1D(64, kernel_size=1, input_shape=(num_points, 3)),
             BatchNormalization(axis=-1), #channel last

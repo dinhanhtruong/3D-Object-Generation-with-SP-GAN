@@ -24,7 +24,7 @@ class Generator(keras.Model):
 
         # [B,N, feature_emb_sz] ->  [B,N, 2*style_emb1/2_sz]
         self.style_emb1 = Conv1D(2*self.style_emb1_sz, kernel_size=1, input_shape=(num_points, self.style_emb1_sz))
-        self.style_emb2 = Conv1D(2*self.style_emb1_sz, kernel_size=1, input_shape=(num_points, self.style_emb2_sz))
+        self.style_emb2 = Conv1D(2*self.style_emb2_sz, kernel_size=1, input_shape=(num_points, self.style_emb2_sz))
 
         # [B, N, dim_in] -> [B, N, dim_out]
         self.graph_attn1 = GraphAttention(dim_in=3, dim_out=self.style_emb1_sz, k=20, n=num_points)
@@ -69,6 +69,7 @@ class Generator(keras.Model):
         local_style1 = self.style_emb1(feature_emb) # [B,N, 2*style_emb1_sz]
         # 2) lower branch: apply graph attention module to get feature map
         feature_map = self.graph_attn1(sphere) # [B, N, 64]
+        
         # 3) get embedded feature map: fuse local style with global feature map
         normalized_feature_map = self.adaptive_instance_norm1(feature_map, local_style1) # [B, N, 64]
         
@@ -84,7 +85,10 @@ class Generator(keras.Model):
         global_features = tf.expand_dims(global_features, 1) # [B, 1, 512]
         duplicated_features = tf.repeat(global_features, self.num_points, axis=1) # [B, N, 512]
         concat = tf.concat([normalized_feature_map2, duplicated_features], axis=-1) # [B, N, (512+128)]
+
         return self.MLP_out(concat) # [B, N,3]
+
+
     def loss(self, fake_shape_scores, fake_per_point_scores):
         shape_loss = 0.5 * (fake_shape_scores-1)**2 # [B, 1]
         
@@ -134,18 +138,17 @@ class GraphAttention(keras.Model):
         x: (point cloud) input [batch, N, C] where C is the dimension of the points in the cloud (C=3 initially)
         returns: point-wise feature map [B, N, dim_out]
         """
+        batch_sz = x.shape[0]
         # KNN grouping (lower branch)
         dist_adj_matrix = self.pairwise_distance(x) # builds adj matrix [B, N, N] as indices
-        assert dist_adj_matrix.shape == (64, 1024, 1024)
+        # assert dist_adj_matrix.shape == (batch_sz, 1024, 1024)
 
         nn_idx = self.knn(dist_adj_matrix) # [B, N, k]
-        assert nn_idx.shape == (64, 1024, self.k)
+        # assert nn_idx.shape == (batch_sz, 1024, self.k)
         
         upper_branch, lower_branch = self.get_edge_feature(tf.expand_dims(x, axis=2), nn_idx) # [B, N, k, 2C], [B, N, k, C]
-        print("upper:", upper_branch.shape)
-        print("lower:", lower_branch.shape)
-        assert upper_branch.shape == (64, 1024, self.k, 2*x.shape[-1])
-        assert lower_branch.shape == (64, 1024, self.k, x.shape[-1])
+        # assert upper_branch.shape == (batch_sz, 1024, self.k, 2*x.shape[-1])
+        # assert lower_branch.shape == (batch_sz, 1024, self.k, x.shape[-1])
 
         # apply MLPs (EdgeConv) to both branches
         feature_map = self.MLPs_upper(upper_branch) # [B, N, k, dim_out]
@@ -153,8 +156,8 @@ class GraphAttention(keras.Model):
 
         # collapse upper/lower branches
         weighted_feature_map = feature_map * feature_weights # [B, N, k, dim_out]
-
-        return self.conv_out(weighted_feature_map) # [B, N, dim_out]
+        out = self.conv_out(weighted_feature_map) # [B, N, 1, dim_out]
+        return tf.squeeze(out)
 
     
     # ===== EdgeConv module from DGCNN ==============
@@ -236,5 +239,7 @@ class AdaptiveInstanceNorm(keras.Model):
         returns: normalized feature map (same size)
         """
         # split styles into scale and bias scalars
-        scale, bias = tf.split(styles, 2) # [B, N, style_emb_sz]
+        scale, bias = tf.split(styles, 2, axis=-1) # each [B, N, style_emb_sz]
+        print("scale, bias:", scale.shape, bias.shape)
+        print("norm: ", self.norm(feature_map).shape)
         return scale * self.norm(feature_map) + bias
