@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import tensorflow.keras as keras
 import matplotlib 
@@ -25,9 +26,6 @@ data = []
 for i in range(num_examples):
     path = "./blueno/blueno_" + str(i+1) + ".off"
     mesh = trimesh.load(path)
-    # print(mesh.vertices.shape, mesh.faces.shape, mesh.triangles.shape, mesh.bounds)
-    # cloud = trimesh.points.PointCloud(mesh.sample(num_points))
-    # cloud.show()
     data.append(mesh.sample(num_points)) #[N,3]
 # convert data to TF Dataset object and batch
 dataset = tf.data.Dataset.from_tensor_slices(data)
@@ -55,7 +53,6 @@ def train_batch(real_clouds):
 
     # train D with real and fake clouds
     with tf.GradientTape() as tape:
-        print("real:", tf.shape(real_clouds))
         real_shape_score, real_per_point_score = D(real_clouds)
         fake_shape_score, fake_per_point_score = D(fake_clouds)
         d_loss = D.loss(real_shape_score, real_per_point_score, fake_shape_score, fake_per_point_score)
@@ -74,11 +71,19 @@ def train_batch(real_clouds):
 # ====== MAIN LOOP ==========
 D = Discriminator(num_points, per_point_loss_weight)
 G = Generator(num_points, latent_dim, per_point_loss_weight)
+# checkpoints to occasionally save model (generator only)
+checkpoint = tf.train.Checkpoint(G=G) 
+checkpoint_dir_prefix = "training_checkpoints/checkpoint"
+
 for epoch in range(epochs):
     print("Epoch: ", epoch)
     for batch_num, real_cloud_batch in enumerate(dataset):
         print("batch: ", batch_num)
         d_loss, g_loss, generated_clouds = train_batch(real_cloud_batch)
-print("saving")
-G.save("trained_generator1")
+    print("saving")
+    path = checkpoint.save(checkpoint_dir_prefix)
+    print("path:", path)
+G.summary()
+        
+# G.save("trained_generator1")
 

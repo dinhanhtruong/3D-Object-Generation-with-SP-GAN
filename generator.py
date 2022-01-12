@@ -4,8 +4,8 @@ from tensorflow.python.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, Conv2D, LeakyReLU, Softmax, GlobalMaxPool1D, Dense, Reshape, Embedding, BatchNormalization
 
 class Generator(keras.Model):
-    def __init__(self, num_points, latent_dim, per_point_loss_weight):
-        super().__init__()
+    def __init__(self, num_points, latent_dim, per_point_loss_weight, **kwargs):
+        super(Generator, self).__init__(name="generator", **kwargs)
         self.feature_emb_sz = 128
         self.style_emb1_sz = 64
         self.style_emb2_sz = 128
@@ -97,9 +97,9 @@ class Generator(keras.Model):
 
         return tf.reduce_sum(shape_loss +  self.per_point_loss_weight * point_loss)
 # helper classes
-class GraphAttention(keras.Model):
-    def __init__(self, dim_in, dim_out, k, n):
-        super().__init__()
+class GraphAttention(keras.layers.Layer):
+    def __init__(self, dim_in, dim_out, k, n, **kwargs):
+        super(GraphAttention, self).__init__(name="graph_attn", **kwargs)
 
         self.k = k #20
         self.dim_in = dim_in
@@ -225,9 +225,9 @@ class GraphAttention(keras.Model):
         _, nn_idx = tf.nn.top_k(neg_adj, k=k)
         return nn_idx
 
-class AdaptiveInstanceNorm(keras.Model):
-    def __init__(self):
-        super().__init__()
+class AdaptiveInstanceNorm(keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super(AdaptiveInstanceNorm, self).__init__(name="adain", **kwargs)
         # normalize per feature vector/instance, not across entire batch
         self.norm = BatchNormalization(axis=[0,1])
 
