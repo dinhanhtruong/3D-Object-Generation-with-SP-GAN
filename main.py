@@ -10,13 +10,13 @@ import numpy as np
 
 
 # ====== GLOBAL HYPERPARAMS ===========
-epochs = 1
-batch_sz = 2
+epochs = 6
+batch_sz = 64
 learning_rate = 0.0001
 per_point_loss_weight = 0.1
 num_points = 1024
 latent_dim = 100
-num_examples = 4
+num_examples = 330
 g_optimizer = keras.optimizers.Adam(learning_rate)
 d_optimizer = keras.optimizers.Adam(learning_rate)
 
@@ -24,8 +24,11 @@ d_optimizer = keras.optimizers.Adam(learning_rate)
 # read in meshes and convert to point clouds
 data = []
 for i in range(num_examples):
-    path = "./blueno/blueno_" + str(i+1) + ".off"
+    path = "./blueno/blueno_" + str(i) + ".off"
     mesh = trimesh.load(path)
+    # cloud = trimesh.points.PointCloud(mesh.sample(num_points))
+    # cloud.show()
+    # ==================================NORMALIZE =============================================================================? ###
     data.append(mesh.sample(num_points)) #[N,3]
 # convert data to TF Dataset object and batch
 dataset = tf.data.Dataset.from_tensor_slices(data)
@@ -55,6 +58,8 @@ def train_batch(real_clouds):
     with tf.GradientTape() as tape:
         real_shape_score, real_per_point_score = D(real_clouds)
         fake_shape_score, fake_per_point_score = D(fake_clouds)
+        print("real score: ", real_shape_score)
+        print("fake score: ", fake_shape_score)
         d_loss = D.loss(real_shape_score, real_per_point_score, fake_shape_score, fake_per_point_score)
     grads = tape.gradient(d_loss, D.trainable_variables)
     d_optimizer.apply_gradients(zip(grads, D.trainable_variables))
@@ -80,10 +85,15 @@ for epoch in range(epochs):
     for batch_num, real_cloud_batch in enumerate(dataset):
         print("batch: ", batch_num)
         d_loss, g_loss, generated_clouds = train_batch(real_cloud_batch)
+        print("d_loss: ", d_loss)
+        print("g_loss: ", g_loss)
+        if batch_num % 2 == 0:
+            generated_clouds = tf.make_tensor_proto(generated_clouds)
+            generated_clouds = trimesh.points.PointCloud(tf.make_ndarray(generated_clouds)[0])
+            generated_clouds.show()
     print("saving")
     path = checkpoint.save(checkpoint_dir_prefix)
     print("path:", path)
 G.summary()
         
-# G.save("trained_generator1")
 

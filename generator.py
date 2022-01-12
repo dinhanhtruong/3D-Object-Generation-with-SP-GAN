@@ -240,6 +240,6 @@ class AdaptiveInstanceNorm(keras.layers.Layer):
         """
         # split styles into scale and bias scalars
         scale, bias = tf.split(styles, 2, axis=-1) # each [B, N, style_emb_sz]
-        print("scale, bias:", scale.shape, bias.shape)
-        print("norm: ", self.norm(feature_map).shape)
+        # print("scale, bias:", scale.shape, bias.shape)
+        # print("norm: ", self.norm(feature_map).shape)
         return scale * self.norm(feature_map) + bias

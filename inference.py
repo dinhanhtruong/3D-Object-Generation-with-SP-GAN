@@ -10,11 +10,11 @@ import numpy as np
 
 
 # ====== GLOBAL HYPERPARAMS ===========
-batch_sz = 2
-per_point_loss_weight = 0.1
+batch_sz = 64 # MUST MATCH TRAINING
+per_point_loss_weight = 0.1 # MUST MATCH TRAINING
 num_points = 1024 # MUST MATCH TRAINING
-latent_dim = 100
-num_examples = 4
+latent_dim = 100 # MUST MATCH TRAINING
+num_examples = 6
 
 # read in FIXED sphere points
 file = open("sphere_" + str(num_points) +"_points.xyz")
@@ -41,7 +41,9 @@ noise = tf.random.normal([batch_sz, latent_dim])
 spheres = tf.repeat(tf.expand_dims(sphere, axis=0), batch_sz, axis=0) #[B,N,3]
 fake_clouds = G(spheres, noise)
 # visualize each cloud
-for cloud in tf.unstack(fake_clouds):
-    cloud = proto_tensor = tf.make_tensor_proto(cloud)
+for i, cloud in enumerate(tf.unstack(fake_clouds)):
+    cloud = tf.make_tensor_proto(cloud)
     cloud = trimesh.points.PointCloud(tf.make_ndarray(cloud))
     cloud.show()
+    if i == num_examples:
+        break
