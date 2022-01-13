@@ -12,13 +12,14 @@ import numpy as np
 # ====== GLOBAL HYPERPARAMS ===========
 epochs = 10
 batch_sz = 32
-learning_rate = 0.0001
+learning_rate_g = 0.0002
+learning_rate_d = 0.0001
 per_point_loss_weight = 0.1
 num_points = 1024
 latent_dim = 50
 num_examples = 10000
-d_optimizer = keras.optimizers.Adam(learning_rate, beta_1=0.5)
-g_optimizer = keras.optimizers.Adam(0.0002, beta_1=0.5)
+d_optimizer = keras.optimizers.Adam(learning_rate_d, beta_1=0.5)
+g_optimizer = keras.optimizers.Adam(learning_rate_g, beta_1=0.5)
 
 # ====== DATA PREPROCESSING ========
 # read in meshes and convert to point clouds
@@ -92,23 +93,26 @@ for epoch in range(epochs):
         print("g_loss: ", g_loss)
         G_losses.append(g_loss)
         D_losses.append(d_loss)
+
+        # plot losses per epoch 
+        pyplot.cla()
+        pyplot.plot(G_losses, label='generator')
+        pyplot.plot(D_losses, label='discriminator')
+        pyplot.xlabel("batch")
+        pyplot.ylabel("loss")
+        pyplot.legend()
+        pyplot.title("G vs. D losses per epoch")
+        pyplot.pause(0.05) #update plot
         if batch_num % 50 == 0:
             generated_clouds = tf.make_tensor_proto(generated_clouds)
             generated_clouds = trimesh.points.PointCloud(tf.make_ndarray(generated_clouds)[0])
             generated_clouds.show()
     
-            # plot losses per epoch
-            pyplot.plot(G_losses, label='generator')
-            pyplot.plot(D_losses, label='discriminator')
-            pyplot.xlabel("batch")
-            pyplot.ylabel("loss")
-            pyplot.legend()
-            pyplot.title("G vs. D losses per epoch")
-            pyplot.show()
-
+            
     print("saving")
     path = checkpoint.save(checkpoint_dir_prefix)
     print("path:", path)
 G.summary()
-        
+pyplot.show()
+
 

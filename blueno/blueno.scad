@@ -13,11 +13,12 @@ module rounded_cylinder(r,h,n) {
 
 module body() {
     hull() {
-        translate([0,0,4]) 
-            sphere(3);
-        sphere(4);
+        translate([0,0,0.5]) 
+            sphere(0.35);
+        sphere(0.5);
     }
 }
+
 body();
 
 //single_rand = rands(0,1,1)[0];

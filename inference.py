@@ -33,8 +33,15 @@ fake_clouds = G(spheres, noise)
 
 checkpoint = tf.train.Checkpoint(G=G)
 checkpoint_path = "training_checkpoints"
+print("loading checkpoint at " + tf.train.latest_checkpoint(checkpoint_path))
 status = checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path))
 status.assert_consumed() # assert that all params loaded
+
+# path = "./blueno/blueno_0.off" #"./blueno/blueno_" + str(i) + ".off"
+# mesh = trimesh.load(path)
+# cloud = trimesh.points.PointCloud(mesh.sample(num_points))
+# cloud.show()
+
 
 # infer
 noise = tf.random.normal([batch_sz, latent_dim])
