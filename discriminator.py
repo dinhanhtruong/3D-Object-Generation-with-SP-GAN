@@ -37,7 +37,7 @@ class Discriminator(keras.Model):
             LeakyReLU(self.leaky_grad),
             Dense(64),
             LeakyReLU(self.leaky_grad),
-            Dense(1) # sigmoid????
+            Dense(1, 'sigmoid') # sigmoid????
         ])
         self.MLPs_per_point = Sequential([
             Dense(512),
@@ -46,7 +46,7 @@ class Discriminator(keras.Model):
             LeakyReLU(self.leaky_grad),
             Dense(64),
             LeakyReLU(self.leaky_grad),
-            Dense(1) # sigmoid????
+            Dense(1, 'sigmoid') # sigmoid????
         ])
 
         
@@ -82,6 +82,6 @@ class Discriminator(keras.Model):
         shape_loss = 0.5 * (fake_shape_scores**2 +(real_shape_scores-1)**2) # [B, 1]
         
         point_loss_inner_sum = (fake_per_point_scores**2 +(real_per_point_scores-1)**2) # [B, N, 1]
-        point_loss = 1.0/(2*self.num_points) * tf.reduce_sum(point_loss_inner_sum, axis=1)  # [B, 1]
+        point_loss = (1.0/(2*self.num_points)) * tf.reduce_sum(point_loss_inner_sum, axis=1)  # [B, 1]
 
         return tf.reduce_sum(shape_loss +  self.per_point_loss_weight * point_loss)

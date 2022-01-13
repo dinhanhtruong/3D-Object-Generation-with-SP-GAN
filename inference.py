@@ -10,10 +10,10 @@ import numpy as np
 
 
 # ====== GLOBAL HYPERPARAMS ===========
-batch_sz = 64 # MUST MATCH TRAINING
+batch_sz = 32 # MUST MATCH TRAINING
 per_point_loss_weight = 0.1 # MUST MATCH TRAINING
 num_points = 1024 # MUST MATCH TRAINING
-latent_dim = 100 # MUST MATCH TRAINING
+latent_dim = 50 # MUST MATCH TRAINING
 num_examples = 6
 
 # read in FIXED sphere points
