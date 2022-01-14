@@ -1,4 +1,5 @@
 import os
+from tabnanny import check
 import tensorflow as tf
 import tensorflow.keras as keras
 import matplotlib 
@@ -13,7 +14,7 @@ import numpy as np
 batch_sz = 32 # MUST MATCH TRAINING
 per_point_loss_weight = 0.1 # MUST MATCH TRAINING
 num_points = 1024 # MUST MATCH TRAINING
-latent_dim = 50 # MUST MATCH TRAINING
+latent_dim = 70 #85 # MUST MATCH TRAINING
 num_examples = 6
 
 # read in FIXED sphere points
@@ -34,7 +35,7 @@ fake_clouds = G(spheres, noise)
 checkpoint = tf.train.Checkpoint(G=G)
 checkpoint_path = "training_checkpoints"
 print("loading checkpoint at " + tf.train.latest_checkpoint(checkpoint_path))
-status = checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path))
+status = checkpoint.restore("training_checkpoints/checkpoint-13")  # checkpoint.restore(tf.train.latest_checkpoint(checkpoint_path))
 status.assert_consumed() # assert that all params loaded
 
 # path = "./blueno/blueno_0.off" #"./blueno/blueno_" + str(i) + ".off"
@@ -52,5 +53,5 @@ for i, cloud in enumerate(tf.unstack(fake_clouds)):
     cloud = tf.make_tensor_proto(cloud)
     cloud = trimesh.points.PointCloud(tf.make_ndarray(cloud))
     cloud.show()
-    if i == num_examples:
+    if i == batch_sz-1:
         break
