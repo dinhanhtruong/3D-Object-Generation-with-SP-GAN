@@ -10,14 +10,14 @@ import numpy as np
 
 
 # ====== GLOBAL HYPERPARAMS ===========
-epochs = 5
+epochs = 50
 batch_sz = 32
 learning_rate_g = 0.0002
 learning_rate_d = 0.0001
 per_point_loss_weight = 0.1
-num_points = 1024
+num_points = 1024 #1024 or 2048
 latent_dim = 85
-num_examples = 10000
+num_examples = 960
 d_optimizer = keras.optimizers.Adam(learning_rate_d, beta_1=0.5)
 g_optimizer = keras.optimizers.Adam(learning_rate_g, beta_1=0.5)
 
@@ -25,7 +25,7 @@ g_optimizer = keras.optimizers.Adam(learning_rate_g, beta_1=0.5)
 # read in meshes and convert to point clouds
 data = []
 for i in range(num_examples):
-    path = "./blueno/blueno_0.off" #"./blueno/blueno_" + str(i) + ".off"
+    path = "./blueno/blueno.stl" #"./blueno/blueno_" + str(i) + ".off"
     mesh = trimesh.load(path)
     # cloud = trimesh.points.PointCloud(mesh.sample(num_points))
     # cloud.show()
@@ -81,7 +81,7 @@ D = Discriminator(num_points, per_point_loss_weight)
 G = Generator(num_points, latent_dim, per_point_loss_weight)
 # checkpoints to occasionally save model (generator only)
 checkpoint = tf.train.Checkpoint(G=G) 
-checkpoint_dir_prefix = "training_checkpoints/checkpoint"
+checkpoint_dir_prefix = "training_checkpoints1/checkpoint"
 G_losses = []
 D_losses = []
 for epoch in range(epochs):
@@ -89,11 +89,13 @@ for epoch in range(epochs):
     for batch_num, real_cloud_batch in enumerate(dataset):
         print("--------batch: ", batch_num)
         d_loss, g_loss, generated_clouds = train_batch(real_cloud_batch)
-        print("d_loss: ", d_loss)
-        print("g_loss: ", g_loss)
-        G_losses.append(g_loss)
-        D_losses.append(d_loss)
 
+        if batch_num % 2:
+            print("d_loss: ", d_loss)
+            print("g_loss: ", g_loss)
+            G_losses.append(g_loss)
+            D_losses.append(d_loss)
+        
         # plot losses per epoch 
         pyplot.cla()
         pyplot.plot(G_losses, label='generator')
