@@ -105,13 +105,13 @@ for epoch in range(epochs):
         pyplot.legend()
         pyplot.title("G vs. D losses per epoch")
         pyplot.pause(0.05) #update plot
-        if batch_num % 100 == 99:
+        # if batch_num % 100 == 99:
         #     generated_clouds = tf.make_tensor_proto(generated_clouds)
         #     generated_clouds = trimesh.points.PointCloud(tf.make_ndarray(generated_clouds)[0])
         #     generated_clouds.show()
-            print("saving")
-            path = checkpoint.save(checkpoint_dir_prefix)
-            print("path:", path)
+    print("saving")
+    path = checkpoint.save(checkpoint_dir_prefix)
+    print("path:", path)
 G.summary()
 pyplot.show()
 
