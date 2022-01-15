@@ -25,7 +25,7 @@ g_optimizer = keras.optimizers.Adam(learning_rate_g, beta_1=0.5)
 # read in meshes and convert to point clouds
 data = []
 for i in range(num_examples):
-    path = "./blueno/blueno.stl" #"./blueno/blueno_" + str(i) + ".off"
+    path = "./blueno/blueno" + str(i) + ".stl" #"./blueno/blueno.stl" #
     mesh = trimesh.load(path)
     # cloud = trimesh.points.PointCloud(mesh.sample(num_points))
     # cloud.show()
@@ -43,6 +43,7 @@ sphere = trimesh.exchange.xyz.load_xyz(file)['vertices'] #verts only
 sphere = tf.reshape(sphere, [num_points, 3]) #[N,3]
 
 # ====== SINGLE TRAINING STEP ===============
+@tf.function
 def train_batch(real_clouds):
     """
     trains D and G successively for one batch
@@ -60,8 +61,8 @@ def train_batch(real_clouds):
     with tf.GradientTape() as tape:
         real_shape_score, real_per_point_score = D(real_clouds)
         fake_shape_score, fake_per_point_score = D(fake_clouds)
-        print("real score: ", real_shape_score)
-        print("fake score: ", fake_shape_score)
+        # print("real score: ", real_shape_score)
+        # print("fake score: ", fake_shape_score)
         d_loss = D.loss(real_shape_score, real_per_point_score, fake_shape_score, fake_per_point_score)
     grads = tape.gradient(d_loss, D.trainable_variables)
     d_optimizer.apply_gradients(zip(grads, D.trainable_variables))
@@ -81,11 +82,11 @@ D = Discriminator(num_points, per_point_loss_weight)
 G = Generator(num_points, latent_dim, per_point_loss_weight)
 # checkpoints to occasionally save model (generator only)
 checkpoint = tf.train.Checkpoint(G=G) 
-checkpoint_dir_prefix = "training_checkpoints1/checkpoint"
+checkpoint_dir_prefix = "training_checkpoints2/checkpoint"
 G_losses = []
 D_losses = []
 for epoch in range(epochs):
-    print("================ Epoch: ", epoch+1)
+    print("================ Epoch: ", epoch)
     for batch_num, real_cloud_batch in enumerate(dataset):
         print("--------batch: ", batch_num)
         d_loss, g_loss, generated_clouds = train_batch(real_cloud_batch)
@@ -96,22 +97,23 @@ for epoch in range(epochs):
             G_losses.append(g_loss)
             D_losses.append(d_loss)
         
-        # plot losses per epoch 
-        pyplot.cla()
-        pyplot.plot(G_losses, label='generator')
-        pyplot.plot(D_losses, label='discriminator')
-        pyplot.xlabel("batch")
-        pyplot.ylabel("loss")
-        pyplot.legend()
-        pyplot.title("G vs. D losses per epoch")
-        pyplot.pause(0.05) #update plot
+            # plot losses per epoch 
+            pyplot.cla()
+            pyplot.plot(G_losses, label='generator')
+            pyplot.plot(D_losses, label='discriminator')
+            pyplot.xlabel("batch")
+            pyplot.ylabel("loss")
+            pyplot.legend()
+            pyplot.title("G vs. D losses per epoch")
+            pyplot.pause(0.05) #update plot
         # if batch_num % 100 == 99:
         #     generated_clouds = tf.make_tensor_proto(generated_clouds)
         #     generated_clouds = trimesh.points.PointCloud(tf.make_ndarray(generated_clouds)[0])
         #     generated_clouds.show()
-    print("saving")
-    path = checkpoint.save(checkpoint_dir_prefix)
-    print("path:", path)
+    if epoch % 3 == 2:
+        print("saving")
+        path = checkpoint.save(checkpoint_dir_prefix)
+        print("path:", path)
 G.summary()
 pyplot.show()
 

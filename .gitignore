@@ -2,3 +2,4 @@
 __pycache__/generator.cpython-39.pyc
 __pycache__/discriminator.cpython-39.pyc
 *.pyc
+*.stl
