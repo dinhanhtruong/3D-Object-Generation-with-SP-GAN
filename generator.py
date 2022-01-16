@@ -135,7 +135,7 @@ class GraphAttention(keras.layers.Layer):
 
     def call(self, x):
         """
-        x: (point cloud) input [batch, N, C] where C is the dimension of the points in the cloud (C=3 initially)
+        x: point cloud input [batch, N, C] where C is the dimension of the points in the cloud (C=3 initially)
         returns: point-wise feature map [B, N, dim_out]
         """
         batch_sz = x.shape[0]
@@ -224,6 +224,8 @@ class GraphAttention(keras.layers.Layer):
         neg_adj = -adj_matrix
         _, nn_idx = tf.nn.top_k(neg_adj, k=k)
         return nn_idx
+
+
 
 class AdaptiveInstanceNorm(keras.layers.Layer):
     def __init__(self, **kwargs):

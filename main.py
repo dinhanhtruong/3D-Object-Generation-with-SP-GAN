@@ -1,4 +1,3 @@
-import os
 import tensorflow as tf
 import tensorflow.keras as keras
 from matplotlib import pyplot
@@ -10,27 +9,26 @@ import numpy as np
 
 
 # ====== GLOBAL HYPERPARAMS ===========
-epochs = 50
-batch_sz = 32
-learning_rate_g = 0.0002
+epochs = 100
+batch_sz = 16
+learning_rate_g = 0.0001
 learning_rate_d = 0.0001
-per_point_loss_weight = 0.1
-num_points = 1024 #1024 or 2048
-latent_dim = 85
+per_point_loss_weight = 0.4
+num_points = 2048 #1024 or 2048
+latent_dim = 100
 num_examples = 960
 d_optimizer = keras.optimizers.Adam(learning_rate_d, beta_1=0.5)
 g_optimizer = keras.optimizers.Adam(learning_rate_g, beta_1=0.5)
+
 
 # ====== DATA PREPROCESSING ========
 # read in meshes and convert to point clouds
 data = []
 for i in range(num_examples):
-    path = "./blueno/blueno" + str(i) + ".stl" #"./blueno/blueno.stl" #
+    path = "./blueno/blueno" + str(i) + ".stl" 
     mesh = trimesh.load(path)
-    # cloud = trimesh.points.PointCloud(mesh.sample(num_points))
-    # cloud.show()
-    # ==================================NORMALIZE =============================================================================? ###
     data.append(mesh.sample(num_points)) #[N,3]
+
 # convert data to TF Dataset object and batch
 dataset = tf.data.Dataset.from_tensor_slices(data)
 dataset = dataset.shuffle(buffer_size=num_examples).batch(batch_sz, drop_remainder=True)
@@ -38,9 +36,8 @@ dataset = dataset.shuffle(buffer_size=num_examples).batch(batch_sz, drop_remaind
 # read in FIXED sphere points
 file = open("sphere_" + str(num_points) +"_points.xyz")
 sphere = trimesh.exchange.xyz.load_xyz(file)['vertices'] #verts only
-# cloud = trimesh.points.PointCloud(sphere)
-# cloud.show()
 sphere = tf.reshape(sphere, [num_points, 3]) #[N,3]
+
 
 # ====== SINGLE TRAINING STEP ===============
 @tf.function
@@ -77,6 +74,7 @@ def train_batch(real_clouds):
     
     return d_loss, g_loss, fake_clouds
 
+
 # ====== MAIN LOOP ==========
 D = Discriminator(num_points, per_point_loss_weight)
 G = Generator(num_points, latent_dim, per_point_loss_weight)
@@ -85,6 +83,7 @@ checkpoint = tf.train.Checkpoint(G=G)
 checkpoint_dir_prefix = "training_checkpoints2/checkpoint"
 G_losses = []
 D_losses = []
+
 for epoch in range(epochs):
     print("================ Epoch: ", epoch)
     for batch_num, real_cloud_batch in enumerate(dataset):
@@ -97,7 +96,7 @@ for epoch in range(epochs):
             G_losses.append(g_loss)
             D_losses.append(d_loss)
         
-            # plot losses per epoch 
+            # plot losses dynamically
             pyplot.cla()
             pyplot.plot(G_losses, label='generator')
             pyplot.plot(D_losses, label='discriminator')
@@ -106,6 +105,8 @@ for epoch in range(epochs):
             pyplot.legend()
             pyplot.title("G vs. D losses per epoch")
             pyplot.pause(0.05) #update plot
+
+        # occasionally display generator output
         # if batch_num % 100 == 99:
         #     generated_clouds = tf.make_tensor_proto(generated_clouds)
         #     generated_clouds = trimesh.points.PointCloud(tf.make_ndarray(generated_clouds)[0])
@@ -114,6 +115,7 @@ for epoch in range(epochs):
         print("saving")
         path = checkpoint.save(checkpoint_dir_prefix)
         print("path:", path)
+
 G.summary()
 pyplot.show()
 

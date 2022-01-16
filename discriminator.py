@@ -37,7 +37,7 @@ class Discriminator(keras.Model):
             LeakyReLU(self.leaky_grad),
             Dense(64),
             LeakyReLU(self.leaky_grad),
-            Dense(1, 'sigmoid') # sigmoid????
+            Dense(1, 'sigmoid') 
         ])
         self.MLPs_per_point = Sequential([
             Dense(512),
@@ -46,12 +46,10 @@ class Discriminator(keras.Model):
             LeakyReLU(self.leaky_grad),
             Dense(64),
             LeakyReLU(self.leaky_grad),
-            Dense(1, 'sigmoid') # sigmoid????
+            Dense(1, 'sigmoid') 
         ])
 
         
-
-
 
     def call(self, cloud):
         """
@@ -63,11 +61,13 @@ class Discriminator(keras.Model):
         """
         features = self.feature_extraction(cloud)
 
-        # split into two branches
+        # split into two branches 
+        # 1) per-shape score
         pooled = self.max_pool(features)
         per_shape_score = self.MLPs_per_shape(pooled) 
         per_shape_score = tf.squeeze(per_shape_score) # [B,1]
 
+        # per-point score
         per_point_score = self.MLPs_per_point(features) 
         per_point_score = tf.squeeze(per_point_score) # [B,N]
 
