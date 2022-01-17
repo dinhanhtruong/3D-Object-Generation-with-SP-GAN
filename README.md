@@ -15,7 +15,7 @@ Be sure to have the following dependencies installed:
 - trimesh (install via pip trimesh[easy] for the required packages)
 - matplotlib
 - numpy
-
+To train a model, run ```main.py```
 ## Model Architecture
 The model contains several components worth highlighting. In the generator, the graph attention module is responsible for transforming the global sphere into a feature map, which is then normalized, per instance, via the local features computed from the latent vector. The attention module borrows heavily from DGCNN's EdgeConv operation (Wang et al. 2019) by grouping nearby points through the k-nearest neighbors algorithm and passing each group through MLPs. To produce the final output, the features are passed through several MLPs consisting of repeated conv2d, LeakyReLU, and batch normalization.
 
