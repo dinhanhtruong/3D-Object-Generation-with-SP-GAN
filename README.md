@@ -58,11 +58,11 @@ Long-legged, thick-armed blueno
 
 <img src="https://github.com/dinhanhtruong/3D-Object-Generation-with-SP-GAN/blob/main/generator_outputs/final/blueno3.gif" width="700">
 
-Asymetrical, flat-headed, (very) long-lamped, wide-eared, thicker-armed, thin/long-legged Blueno:
+Asymmetrical, flat-headed, (very) long-lamped, wide-eared, thicker-armed, thin/long-legged Blueno:
 
 <img src="https://github.com/dinhanhtruong/3D-Object-Generation-with-SP-GAN/blob/main/generator_outputs/final/blueno4.gif" width="700">
 
-Asymetrical, thin, short-lamped, short-armed, short-legged Blueno:
+Asymmetrical, thin, short-lamped, short-armed, short-legged Blueno:
 
 <img src="https://github.com/dinhanhtruong/3D-Object-Generation-with-SP-GAN/blob/main/generator_outputs/final/blueno5.gif" width="700">
 
