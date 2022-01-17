@@ -1,4 +1,4 @@
-# 3D-Object-Generation-with-SP-GAN
+# 3D Object Generation with SP-GAN
 ![Blueno collage](/generator_outputs/collage/collage.png)
 ## Overview
 This is my implementation of sphere-guided GAN (SP-GAN), a generative model recently proposed by Li et al. (2021), for my Brown Visual Computing starter project.
