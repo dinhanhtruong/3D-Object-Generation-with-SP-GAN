@@ -68,7 +68,7 @@ Asymmetrical, thin, short-lamped, short-armed, short-legged Blueno:
 
 
 ### Interpolation
-Now, as no GAN project is complete without a latent space interpolation, here's your daily dose (notice the proportions of the arms, legs, and lamp):
+Now, as no GAN project is complete without a latent space interpolation, here's your daily dose (notice how the proportions of the arms, legs, and lamp shift over the 4 timesteps):
 
 Source Blueno:
 
