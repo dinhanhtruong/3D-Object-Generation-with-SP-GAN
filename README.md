@@ -1,7 +1,7 @@
 # 3D Object Generation with SP-GAN
 ![Blueno collage](/generator_outputs/collage/collage.png)
 ## Overview
-This is my implementation of sphere-guided GAN (SP-GAN), a generative model recently proposed by Li et al. (2021), for my Brown Visual Computing starter project.
+This is my implementation of sphere-guided GAN (SP-GAN), a generative model recently proposed by Li et al. (2021).
 Trained on 3D point clouds of Blueno, our school's beloved but deceased big blue bear, the model produces unseen yet believable new instances of Blueno. 
 
 At a high level, what differentiates SP-GAN from other GANs is its use of a global prior distribution in the form of a fixed sphere to regulate the holistic shape of the output *in addition to* a local prior (the standard Gaussian noise) that controls finer details. This allows the model to generate point clouds of complex shapes with little noise at the microscopic level. 
